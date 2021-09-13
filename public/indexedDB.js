@@ -4,16 +4,16 @@ let db;
 const request = indexedDB.open("budgetTracker", 1);
 
 //getting db instance
-request.onupgradeneeded = ({ target }) => {
-    const db = target.result;
+request.onupgradeneeded = function (event) {
+    const db = event.target.result;
     if (db.objectStoreNames.length === 0) {
         db.createObjectStore("fundsStore", { autoIncrement: true });
     }
 };
 
 
-request.onsuccess = ({ target }) => {
-    db = target.result;
+request.onsuccess = function (event) {
+    db = event.target.result;
     //will run the assessDB function to check if app is online
     if (navigator.onLine) {
         assessDB();
@@ -23,6 +23,14 @@ request.onsuccess = ({ target }) => {
 //console log request error
 request.onerror = function (event) {
     console.log(event.target.errorCode);
+};
+
+const addToStore = (recordOfTrx) => {
+    // creating a transaction on fundsStore database
+    const transaction = db.transaction(['fundsStore'], 'readwrite');
+    // creating access to fundsStore object
+    const store = transaction.objectStore('fundsStore');
+    store.add(recordOfTrx);
 };
 
 function assessDB() {
@@ -40,31 +48,27 @@ function assessDB() {
                 body: JSON.stringify(getAll.result),
                 headers: {
                     Accept: 'application/json, text/plain, */*',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-            }).then((res) => res.json())
+            })
+                .then((response) => response.json())
                 .then((res) => {
+                    // If our returned response is not empty
                     if (res.length !== 0) {
+                        // Open another transaction to fundsStore with the ability to read and write
                         transaction = db.transaction(['fundsStore'], 'readwrite');
+                        // Assign the current store to a variable
                         const currentStore = transaction.objectStore('fundsStore');
-                        //clearing any existing data in the store
+                        // Clear existing entries because our bulk add was successful
                         currentStore.clear();
-                        console.log('Existing store cleared and transactions are submitted.')
+                        alert('Transactions submitted.');
                     }
-                }).catch(err => {
+                })
+                .catch(err => {
                     console.log(err);
                 });
         }
     };
-};
-
-const addToStore = (recordOfTrx) => {
-    console.log('Saving record of transaction.');
-    // creating a transaction on fundsStore database
-    const transaction = db.transaction(['fundsStore'], 'readwrite');
-    // creating access to fundsStore object
-    const store = transaction.objectStore('fundsStore');
-    store.add(recordOfTrx);
 };
 
 //event listener to fire when app goes online

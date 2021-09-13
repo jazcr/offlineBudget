@@ -1,3 +1,8 @@
+//listener for static assets
+const STATIC_CACHE = "static-cache-v1";
+const DATA_CACHE = "data-cache-v1";
+
+
 const FILES_TO_CACHE = [
     "/",
     "/index.html",
@@ -9,18 +14,12 @@ const FILES_TO_CACHE = [
     "/icons/icon-512x512.png",
 ];
 
-//listener for static assets
-const STATIC_CACHE = "static-cache-v2";
-const DATA_CACHE = "data-cache-v1";
-
 // install
 self.addEventListener("install", function (evt) {
     // pre cache image data
     evt.waitUntil(
-        caches.open(STATIC_CACHE).then(cache => {
-            return cache.addAll(FILES_TO_CACHE)
-        })
-    )
+        caches.open(STATIC_CACHE).then(cache => cache.addAll(FILES_TO_CACHE))
+    );
     //skip waiting stage
     self.skipWaiting();
 });
@@ -43,35 +42,10 @@ self.addEventListener("activate", function (evt) {
     self.clients.claim();
 });
 
-// fetch
-self.addEventListener("fetch", function (evt) {
-    if (evt.request.url.includes("/api/")) {
-        evt.respondWith(
-            caches.open(DATA_CACHE).then(cache => {
-                return fetch(evt.request)
-                    .then(response => {
-                        //clone response to store 
-                        if (response.status === 200) {
-                            cache.put(evt.request.url, response.clone());
-                        }
 
-                        return response;
-                    })
-                    .catch(err => {
-                        return cache.match(evt.request);
-                    });
-            }).catch(err => console.log(err))
-        );
-
-        return;
-    }
-
-    //app will serve static assets if api is not requested 
-    evt.respondWith(
-        caches.match(evt.request).then(response => {
-            return response || fetch(evt.request);
-        })
+//Fetching
+self.addEventListener('fetch', evt => {
+    evt.respondWith( 
+        caches.match(evt.request).then(response => response || fetch (evt.request))
     )
-
-
 });
