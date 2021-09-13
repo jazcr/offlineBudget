@@ -25,19 +25,19 @@ request.onerror = function (event) {
     console.log(event.target.errorCode);
 };
 
-const assessDB = () => {
+function assessDB() {
     let transaction = db.transaction(['fundsStore'], 'readwrite');
     //allowing access to fundsStore
     const store = transaction.objectStore('fundsStore');
     //getting records from store
-    const getStore = store.getAll();
+    const getAll = store.getAll();
 
     //this function will 'bulk add' transactions when app goes back online
-    getStore.onsuccess = function () {
-        if (getStore.result.length > 0) {
+    getAll.onsuccess = function () {
+        if (getAll.result.length > 0) {
             fetch('/api/transaction/bulk', {
                 method: 'POST',
-                body: JSON.stringify(getStore.result),
+                body: JSON.stringify(getAll.result),
                 headers: {
                     Accept: 'application/json, text/plain, */*',
                     'Content-Type': 'application/json'
@@ -51,7 +51,9 @@ const assessDB = () => {
                         currentStore.clear();
                         console.log('Existing store cleared and transactions are submitted.')
                     }
-                })
+                }).catch(err => {
+                    console.log(err);
+                });
         }
     };
 };
