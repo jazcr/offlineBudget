@@ -5,7 +5,7 @@
 
 <br>
 
-![Screenshot of Homepage]() 
+![Screenshot of Homepage](https://github.com/jazcr/offlineBudget/blob/ae7b6d38eca8b65f84d9ab4ea957fb9fa157b5a9/public/icons/ss.JPG) 
 <br>
 
 <br>  
