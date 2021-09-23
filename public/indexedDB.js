@@ -1,48 +1,58 @@
+//Varibale to hold connection
 let db;
 
-//indexed DB and version number
-const request = indexedDB.open("budgetTracker", 1);
+//Requesting a database instance
+const request = indexedDB.open('budget_tracker', 1);
 
-//getting db instance
+//Creating object store
 request.onupgradeneeded = function (event) {
-    const db = event.target.result;
-    if (db.objectStoreNames.length === 0) {
-        db.createObjectStore("fundsStore", { autoIncrement: true });
-    }
+   const db = event.target.result;
+   if (db.objectStoreNames.length === 0) {
+       //if no objectStore create one, autoincrement primary key
+    db.createObjectStore('BudgetStore', {autoIncrement: true });
+}
 };
 
+//Create the onsuccess
 
 request.onsuccess = function (event) {
-    db = event.target.result;
-    //will run the assessDB function to check if app is online
-    if (navigator.onLine) {
-        assessDB();
+     db = event.target.result;
+
+    //Check to see if app is online before reading from database
+    if(navigator.onLine) {
+        checkDatabase();
     }
 };
 
-//console log request error
+//If an error occurs, log the error
 request.onerror = function (event) {
     console.log(event.target.errorCode);
 };
 
-const addToStore = (recordOfTrx) => {
-    // creating a transaction on fundsStore database
-    const transaction = db.transaction(['fundsStore'], 'readwrite');
-    // creating access to fundsStore object
-    const store = transaction.objectStore('fundsStore');
-    store.add(recordOfTrx);
+//Function for when user submits new transaction offline to save their input
+const saveRecord = (record) => {
+    console.log('saving record invoked');
+    //creating transaction that can read and write on database
+    const transaction = db.transaction(['BudgetStore'], 'readwrite');
+    //Access object store
+    const store = transaction.objectStore('BudgetStore');
+    //Add record to store
+    store.add(record);
 };
 
-function assessDB() {
-    let transaction = db.transaction(['fundsStore'], 'readwrite');
-    //allowing access to fundsStore
-    const store = transaction.objectStore('fundsStore');
-    //getting records from store
+//Checkdatabase function
+
+const checkDatabase = () => {
+    //Opens a transaction of budgettracker database
+    let transaction = db.transaction(['BudgetStore'], 'readwrite');
+    //Access the budgetstore
+    const store = transaction.objectStore('BudgetStore');
+    //Get all records from store and set to a variable
     const getAll = store.getAll();
 
-    //this function will 'bulk add' transactions when app goes back online
+    //If the request is successful 
     getAll.onsuccess = function () {
-        if (getAll.result.length > 0) {
+        if(getAll.result.length > 0) {
             fetch('/api/transaction/bulk', {
                 method: 'POST',
                 body: JSON.stringify(getAll.result),
@@ -51,25 +61,22 @@ function assessDB() {
                     'Content-Type': 'application/json',
                 },
             })
-                .then((response) => response.json())
-                .then((res) => {
-                    // If our returned response is not empty
-                    if (res.length !== 0) {
-                        // Open another transaction to fundsStore with the ability to read and write
-                        transaction = db.transaction(['fundsStore'], 'readwrite');
-                        // Assign the current store to a variable
-                        const currentStore = transaction.objectStore('fundsStore');
-                        // Clear existing entries because our bulk add was successful
-                        currentStore.clear();
-                        alert('Transactions submitted.');
-                    }
-                })
-                .catch(err => {
-                    console.log(err);
-                });
+            .then((response) => response.json())
+            .then((res) => {
+    //If returned response is not empty open another transaction to BudgetStore that can read and write 
+                if (res.length !== 0) {
+                    transaction = db.transaction(['BudgetStore'], 'readwrite');
+            //Create variable for the current store
+                    const currentStore = transaction.objectStore('BudgetStore');
+            //Clear exisiting entries when bulk add is successful
+                    currentStore.clear();
+                }
+            });
         }
     };
 };
 
-//event listener to fire when app goes online
-window.addEventListener('online', assessDB);
+
+
+//Listen for app to get back online
+window.addEventListener('online', checkDatabase);
